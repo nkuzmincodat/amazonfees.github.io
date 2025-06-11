@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Guide to Amazon SP-API for Fees</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: "Soothing Neutrals" - A calm palette using beige, slate, and a gentle teal accent for a professional, focused, and modern tech feel. -->
+    <!-- Application Structure Plan: A task-oriented, single-page dashboard. The structure prioritizes developer workflow: 1. A high-level overview dashboard to quickly categorize data sources (Actual vs. Estimated). 2. An 'API Explorer' to dive deep into specific APIs interactively. 3. A 'Key Reports' section with an interactive table for detailed report info. 4. Clear 'Prerequisites' and 'Strategy' sections for actionable guidance. This non-linear, tool-like structure is more usable for a developer audience than the report's linear format, allowing them to jump directly to the information most relevant to their immediate task. -->
+    <!-- Visualization & Content Choices: 
+        - Overview Donut Chart (Goal: Inform/Compare): Visually categorizes APIs by data type (Actual, Estimated, Preview) for immediate high-level understanding. Uses Chart.js.
+        - API Explorer (Goal: Organize/Inform): Uses dynamic tabs (buttons + JS) to show/hide API details. Complex JSON is represented with styled, nested HTML divs to simulate a user-friendly, collapsible tree structure. This makes the data models understandable without overwhelming the user.
+        - Interactive Reports Table (Goal: Organize/Compare): An HTML table where rows are clickable (JS) to reveal detailed information. This master-detail pattern is more engaging and less cluttered than a large static table.
+        - Strategy Checklists (Goal: Inform): Key recommendations are presented as actionable checklists using styled HTML lists for scannability.
+        - Justification: This interactive, component-based approach breaks down dense technical information into manageable, explorable chunks, aligning with how developers research and consume API documentation.
+    -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f5f5f4; /* Warm Neutral Stone-200 */
+        }
+        .nav-button {
+            transition: all 0.2s ease-in-out;
+        }
+        .nav-button:hover, .nav-button.active {
+            background-color: #0d9488; /* Teal-600 */
+            color: #ffffff;
+        }
+        .api-tab.active {
+            background-color: #0d9488; /* Teal-600 */
+            color: #ffffff;
+            border-color: #0d9488;
+        }
+        .content-section {
+            display: none;
+        }
+        .content-section.active {
+            display: block;
+        }
+        .report-row {
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .report-row:hover {
+            background-color: #e7e5e4; /* Stone-200 */
+        }
+        .report-details {
+            display: none;
+        }
+        .api-content-panel {
+            display: none;
+        }
+        .api-content-panel.active {
+            display: block;
+        }
+        .json-viewer { background-color: #1c1917; color: #e7e5e4; padding: 1rem; border-radius: 0.5rem; font-family: monospace; font-size: 0.875rem; overflow-x: auto;}
+        .json-key { color: #5eead4; } /* Teal-300 */
+        .json-string { color: #fde047; } /* Yellow-300 */
+        .json-number { color: #93c5fd; } /* Blue-300 */
+        .json-brace { color: #fafafa; } /* Neutral-50 */
+        .json-block { margin-left: 1.5rem; border-left: 1px solid #44403c; padding-left: 1rem; }
+        .chart-container { position: relative; width: 100%; max-width: 400px; margin-left: auto; margin-right: auto; height: 300px; max-height: 400px; }
+        @media (min-width: 768px) { .chart-container { height: 350px; } }
+    </style>
+</head>
+<body class="text-slate-800">
+
+    <header class="bg-white shadow-md sticky top-0 z-50">
+        <div class="container mx-auto px-4 py-3">
+            <h1 class="text-2xl md:text-3xl font-bold text-slate-900">Interactive Guide to Amazon SP-API for Fees</h1>
+            <p class="text-sm text-slate-600 mt-1">An interactive dashboard to explore the APIs and reports for tracking Amazon seller fees.</p>
+        </div>
+        <nav class="bg-slate-800 text-white">
+            <div class="container mx-auto px-4 flex flex-wrap justify-center items-center gap-2 py-2">
+                <button data-target="overview" class="nav-button px-4 py-2 rounded-md text-sm font-medium active">Dashboard</button>
+                <button data-target="explorer" class="nav-button px-4 py-2 rounded-md text-sm font-medium">API Explorer</button>
+                <button data-target="reports" class="nav-button px-4 py-2 rounded-md text-sm font-medium">Key Reports</button>
+                <button data-target="prereqs" class="nav-button px-4 py-2 rounded-md text-sm font-medium">Prerequisites</button>
+                <button data-target="strategy" class="nav-button px-4 py-2 rounded-md text-sm font-medium">Strategy Guide</button>
+            </div>
+        </nav>
+    </header>
+
+    <main class="container mx-auto p-4 md:p-8">
+
+        <section id="overview" class="content-section active">
+            <h2 class="text-2xl font-bold mb-4 text-slate-900">Fee Data Sources Dashboard</h2>
+            <p class="mb-8 text-slate-600 max-w-3xl">
+                Amazon provides fee information through multiple channels. Understanding the nature of the data each channel provides—whether it's an actual, finalized charge or a forward-looking estimate—is the first step. This dashboard gives you a high-level overview.
+            </p>
+            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+
+                <div class="bg-white p-6 rounded-lg shadow-lg border-l-4 border-teal-600">
+                    <h3 class="font-bold text-xl mb-2">Actual & Transactional Fees</h3>
+                    <p class="text-slate-600 text-sm mb-4">For precise accounting and reconciliation. These are the real, incurred fees on transactions.</p>
+                    <ul class="space-y-2 text-sm">
+                        <li class="flex items-center"><span class="font-mono text-xs bg-teal-100 text-teal-800 px-2 py-1 rounded-md mr-2">API</span> Finances API</li>
+                        <li class="flex items-center"><span class="font-mono text-xs bg-teal-100 text-teal-800 px-2 py-1 rounded-md mr-2">Report</span> Settlement Reports</li>
+                        <li class="flex items-center"><span class="font-mono text-xs bg-teal-100 text-teal-800 px-2 py-1 rounded-md mr-2">Report</span> FBA Fee Reports (Actuals)</li>
+                    </ul>
+                </div>
+
+                <div class="bg-white p-6 rounded-lg shadow-lg border-l-4 border-amber-500">
+                    <h3 class="font-bold text-xl mb-2">Estimated & Preview Fees</h3>
+                    <p class="text-slate-600 text-sm mb-4">For pricing strategies, profitability analysis, and forecasting before a sale occurs.</p>
+                    <ul class="space-y-2 text-sm">
+                        <li class="flex items-center"><span class="font-mono text-xs bg-amber-100 text-amber-800 px-2 py-1 rounded-md mr-2">API</span> Product Fees API</li>
+                        <li class="flex items-center"><span class="font-mono text-xs bg-amber-100 text-amber-800 px-2 py-1 rounded-md mr-2">Report</span> Referral Fee Preview</li>
+                        <li class="flex items-center"><span class="font-mono text-xs bg-amber-100 text-amber-800 px-2 py-1 rounded-md mr-2">Report</span> Estimated FBA Fees</li>
+                    </ul>
+                </div>
+                
+                <div class="bg-white p-6 rounded-lg shadow-lg border-l-4 border-sky-500">
+                    <h3 class="font-bold text-xl mb-2">Contextual Order Data</h3>
+                    <p class="text-slate-600 text-sm mb-4">Not a direct fee source, but crucial for linking fees to specific orders, items, and promotions.</p>
+                    <ul class="space-y-2 text-sm">
+                        <li class="flex items-center"><span class="font-mono text-xs bg-sky-100 text-sky-800 px-2 py-1 rounded-md mr-2">API</span> Orders API</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="mt-12 bg-white p-6 rounded-lg shadow-lg">
+                <h3 class="font-bold text-xl mb-4 text-center">Fee Data by Source Type</h3>
+                 <p class="mb-6 text-slate-600 max-w-2xl mx-auto text-center text-sm">
+                    This chart shows the distribution of primary APIs and Reports based on the type of financial data they provide. Use this to quickly identify the right tool for your goal, whether it's tracking past performance or planning for the future.
+                </p>
+                <div class="chart-container">
+                    <canvas id="feeTypesChart"></canvas>
+                </div>
+            </div>
+        </section>
+
+        <section id="explorer" class="content-section">
+            <h2 class="text-2xl font-bold mb-4 text-slate-900">Interactive API Explorer</h2>
+             <p class="mb-8 text-slate-600 max-w-3xl">
+                Dive deeper into the primary APIs used for fee retrieval. Select an API to see its purpose, key operations, and an interactive representation of its data structures. This helps visualize the information you'll receive from an API call.
+            </p>
+            <div class="flex flex-wrap gap-2 mb-6 border-b border-slate-300">
+                <button class="api-tab p-3 rounded-t-lg border-b-2 border-transparent font-medium active" data-api="finances">Finances API</button>
+                <button class="api-tab p-3 rounded-t-lg border-b-2 border-transparent font-medium" data-api="productFees">Product Fees API</button>
+                <button class="api-tab p-3 rounded-t-lg border-b-2 border-transparent font-medium" data-api="orders">Orders API</button>
+            </div>
+
+            <div id="api-content-finances" class="api-content-panel active">
+                <div class="grid md:grid-cols-2 gap-8">
+                    <div>
+                        <h3 class="text-xl font-semibold mb-2">Finances API</h3>
+                        <p class="text-slate-600 text-sm mb-4">The cornerstone for actual, itemized financial events. Use this for granular transaction details like order fees, service fees, and adjustments.</p>
+                        <h4 class="font-semibold mt-4 mb-2">Key Operations</h4>
+                        <ul class="list-disc list-inside space-y-2 text-sm text-slate-700">
+                            <li><code class="bg-slate-200 px-1 rounded">listFinancialEvents</code>: Fetches a list of all financial events within a date range.</li>
+                            <li><code class="bg-slate-200 px-1 rounded">listFinancialEventsByOrderId</code>: Retrieves all financial events for a specific order. Essential for reconciliation.</li>
+                            <li><code class="bg-slate-200 px-1 rounded">listFinancialEventsByGroupId</code>: Retrieves events for a specific financial group (e.g., a disbursement).</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h4 class="font-semibold mb-2">Example Data Structure: <code class="text-sm">ShipmentEvent</code></h4>
+                        <div class="json-viewer">
+                            <span class="json-brace">{</span>
+                            <div class="json-block">
+                                <div><span class="json-key">"AmazonOrderId"</span>: <span class="json-string">"123-1234567-1234567"</span>,</div>
+                                <div><span class="json-key">"ShipmentFeeList"</span>: <span class="json-brace">[</span>
+                                    <div class="json-block">
+                                        <span class="json-brace">{</span>
+                                        <div class="json-block">
+                                            <div><span class="json-key">"FeeType"</span>: <span class="json-string">"ReferralFee"</span>,</div>
+                                            <div><span class="json-key">"FeeAmount"</span>: <span class="json-brace">{</span> <span class="json-key">"CurrencyCode"</span>: <span class="json-string">"USD"</span>, <span class="json-key">"CurrencyAmount"</span>: <span class="json-number">-15.00</span> <span class="json-brace">}</span></div>
+                                        </div>
+                                        <span class="json-brace">}</span>,
+                                    </div>
+                                    <div class="json-block">
+                                        <span class="json-brace">{</span>
+                                        <div class="json-block">
+                                            <div><span class="json-key">"FeeType"</span>: <span class="json-string">"FBAPerUnitFulfillmentFee"</span>,</div>
+                                            <div><span class="json-key">"FeeAmount"</span>: <span class="json-brace">{</span> <span class="json-key">"CurrencyCode"</span>: <span class="json-string">"USD"</span>, <span class="json-key">"CurrencyAmount"</span>: <span class="json-number">-3.77</span> <span class="json-brace">}</span></div>
+                                        </div>
+                                        <span class="json-brace">}</span>
+                                    </div>
+                                <span class="json-brace">]</span></div>
+                            </div>
+                            <span class="json-brace">}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="api-content-productFees" class="api-content-panel">
+                 <div class="grid md:grid-cols-2 gap-8">
+                    <div>
+                        <h3 class="text-xl font-semibold mb-2">Product Fees API</h3>
+                        <p class="text-slate-600 text-sm mb-4">Provides *estimated* fees for products. Perfect for pre-pricing analysis and understanding potential costs before listing an item.</p>
+                        <h4 class="font-semibold mt-4 mb-2">Key Operations</h4>
+                        <ul class="list-disc list-inside space-y-2 text-sm text-slate-700">
+                            <li><code class="bg-slate-200 px-1 rounded">getMyFeesEstimateForSKU</code>: Gets fee estimates for your own product using its SKU.</li>
+                            <li><code class="bg-slate-200 px-1 rounded">getMyFeesEstimateForASIN</code>: Gets fee estimates for any product on Amazon using its ASIN.</li>
+                            <li><code class="bg-slate-200 px-1 rounded">getMyFeesEstimates</code>: A batch operation for getting estimates for up to 20 items at once.</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h4 class="font-semibold mb-2">Example Data Structure: <code class="text-sm">FeesEstimateResult</code></h4>
+                         <div class="json-viewer">
+                            <span class="json-brace">{</span>
+                            <div class="json-block">
+                                <div><span class="json-key">"FeesEstimateIdentifier"</span>: <span class="json-brace">{ ... }</span>,</div>
+                                <div><span class="json-key">"FeesEstimate"</span>: <span class="json-brace">{</span>
+                                    <div class="json-block">
+                                        <div><span class="json-key">"TotalFeesEstimate"</span>: <span class="json-brace">{</span> <span class="json-key">"CurrencyCode"</span>: <span class="json-string">"USD"</span>, <span class="json-key">"CurrencyAmount"</span>: <span class="json-number">18.77</span> <span class="json-brace">}</span>,</div>
+                                        <div><span class="json-key">"ReferralFee"</span>: <span class="json-brace">{</span> <span class="json-key">"CurrencyAmount"</span>: <span class="json-number">15.00</span> <span class="json-brace">}</span>,</div>
+                                        <div><span class="json-key">"VariableClosingFee"</span>: <span class="json-brace">{</span> <span class="json-key">"CurrencyAmount"</span>: <span class="json-number">0.00</span> <span class="json-brace">}</span>,</div>
+                                        <div><span class="json-key">"FBAFees"</span>: <span class="json-brace">{</span>
+                                            <div class="json-block">
+                                                <div><span class="json-key">"FBAPerUnitFulfillmentFee"</span>: <span class="json-brace">{</span> <span class="json-key">"CurrencyAmount"</span>: <span class="json-number">3.77</span> <span class="json-brace">}</span></div>
+                                            </div>
+                                        <span class="json-brace">}</span></div>
+                                    </div>
+                                <span class="json-brace">}</span></div>
+                            </div>
+                            <span class="json-brace">}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="api-content-orders" class="api-content-panel">
+                <div class="grid md:grid-cols-2 gap-8">
+                    <div>
+                        <h3 class="text-xl font-semibold mb-2">Orders API</h3>
+                        <p class="text-slate-600 text-sm mb-4">Not a direct fee source, but provides the crucial context for each sale. Use it to get the `AmazonOrderId` and other details needed to link transactions to fees from the Finances API.</p>
+                        <h4 class="font-semibold mt-4 mb-2">Key Operations for Context</h4>
+                        <ul class="list-disc list-inside space-y-2 text-sm text-slate-700">
+                           <li><code class="bg-slate-200 px-1 rounded">getOrders</code>: Retrieves a list of orders based on various filters.</li>
+                           <li><code class="bg-slate-200 px-1 rounded">getOrder</code>: Retrieves detailed information for a single order.</li>
+                           <li><code class="bg-slate-200 px-1 rounded">getOrderItems</code>: Retrieves item-level details for an order, including prices and promotions.</li>
+                        </ul>
+                    </div>
+                    <div>
+                       <h4 class="font-semibold mb-2">Why It's Important for Fees</h4>
+                       <p class="text-slate-600 text-sm">You can't fully understand your fees without understanding the orders that generate them. The Orders API gives you the puzzle pieces—like `SKU`, `item-price`, and `promotion-ids`—that you can use to match with the detailed fee breakdowns from the Finances API, giving you a complete profit-and-loss view for every single sale.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="reports" class="content-section">
+            <h2 class="text-2xl font-bold mb-4 text-slate-900">Key Fee-Related Reports</h2>
+            <p class="mb-8 text-slate-600 max-w-3xl">
+                The Reports API is a powerful tool for bulk data retrieval. It provides periodic summaries and detailed breakdowns that are perfect for offline analysis and accounting. Click on a report row to see its purpose and key data columns.
+            </p>
+            <div class="bg-white rounded-lg shadow-lg overflow-hidden">
+                <table class="w-full text-sm text-left">
+                    <thead class="bg-slate-100 text-slate-600 uppercase">
+                        <tr>
+                            <th class="p-4">Report Name</th>
+                            <th class="p-4 hidden md:table-cell">Data Type</th>
+                            <th class="p-4 hidden lg:table-cell">Primary Use Case</th>
+                        </tr>
+                    </thead>
+                    <tbody id="reports-table">
+                    </tbody>
+                </table>
+            </div>
+        </section>
+        
+        <section id="prereqs" class="content-section">
+            <h2 class="text-2xl font-bold mb-4 text-slate-900">Prerequisites for Access</h2>
+             <p class="mb-8 text-slate-600 max-w-3xl">
+                Accessing fee data is a sensitive operation. Amazon requires a multi-layered approach to security. Here's a simplified breakdown of what you need to have in place before you can make successful API calls.
+            </p>
+            <div class="grid md:grid-cols-3 gap-6">
+                <div class="bg-white p-6 rounded-lg shadow-lg">
+                    <div class="text-3xl mb-3">🔑</div>
+                    <h3 class="font-bold text-lg mb-2">Authentication (LWA)</h3>
+                    <p class="text-slate-600 text-sm">All requests need a short-lived Login with Amazon (LWA) access token. Your application must handle the OAuth flow to get and refresh these tokens.</p>
+                </div>
+                 <div class="bg-white p-6 rounded-lg shadow-lg">
+                    <div class="text-3xl mb-3">🛡️</div>
+                    <h3 class="font-bold text-lg mb-2">Authorization (Roles)</h3>
+                    <p class="text-slate-600 text-sm">Your developer profile and application must be granted specific roles. For fees, the most important is <code class="bg-slate-200 text-xs px-1 rounded">Finance and Accounting</code>.</p>
+                </div>
+                 <div class="bg-white p-6 rounded-lg shadow-lg">
+                    <div class="text-3xl mb-3">📄</div>
+                    <h3 class="font-bold text-lg mb-2">Restricted Data (RDT)</h3>
+                    <p class="text-slate-600 text-sm">If you need to access Personally Identifiable Information (PII) from the Orders API to correlate with fees, you'll also need a Restricted Data Token (RDT).</p>
+                </div>
+            </div>
+        </section>
+        
+        <section id="strategy" class="content-section">
+            <h2 class="text-2xl font-bold mb-4 text-slate-900">Strategy Guide & Best Practices</h2>
+             <p class="mb-8 text-slate-600 max-w-3xl">
+                Building a comprehensive fee overview requires a smart strategy. Here are the key recommendations and best practices to follow when developing your integration.
+            </p>
+            <div class="space-y-6">
+                <div class="bg-white p-6 rounded-lg shadow-lg">
+                    <h3 class="font-bold text-lg mb-3">✅ For Accurate Accounting: Use Actuals</h3>
+                    <p class="text-slate-600 text-sm">
+                        For any task related to accounting, reconciliation, or auditing your true costs, rely exclusively on sources of *actual* fees.
+                    </p>
+                    <ul class="list-disc list-inside space-y-2 mt-4 text-sm text-slate-700">
+                        <li><b>Day-to-day Tracking:</b> Use the <code class="bg-slate-200 px-1 rounded">Finances API</code> for granular, near real-time fee data on individual transactions.</li>
+                        <li><b>Period-End Reconciliation:</b> Use the <code class="bg-slate-200 px-1 rounded">GET_V2_SETTLEMENT_REPORT_DATA_FLAT_FILE_V2</code> report for the authoritative, aggregated view of a settlement period.</li>
+                    </ul>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-lg">
+                    <h3 class="font-bold text-lg mb-3">✅ For Proactive Planning: Use Estimates</h3>
+                    <p class="text-slate-600 text-sm">
+                        For pricing strategies, profitability forecasting, and making decisions about new products, use the *estimated* fee sources.
+                    </p>
+                    <ul class="list-disc list-inside space-y-2 mt-4 text-sm text-slate-700">
+                        <li><b>On-the-fly Estimates:</b> Use the <code class="bg-slate-200 px-1 rounded">Product Fees API</code> to get quick fee estimates for any SKU or ASIN.</li>
+                        <li><b>Bulk Estimates:</b> Use the <code class="bg-slate-200 px-1 rounded">GET_REFERRAL_FEE_PREVIEW_REPORT</code> and <code class="bg-slate-200 px-1 rounded">GET_FBA_ESTIMATED_FBA_FEES_TXT_DATA</code> reports for a broader look at potential fees across your inventory.</li>
+                    </ul>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-lg">
+                    <h3 class="font-bold text-lg mb-3">✅ For a Holistic View: Correlate Data</h3>
+                    <p class="text-slate-600 text-sm">
+                        No single API provides the full story. Your application's core logic should be built to connect data from different sources using common identifiers.
+                    </p>
+                    <ul class="list-disc list-inside space-y-2 mt-4 text-sm text-slate-700">
+                        <li>Use <code class="bg-slate-200 px-1 rounded">AmazonOrderId</code> to link Orders API data with Finances API events and Settlement Report line items.</li>
+                        <li>Use <code class="bg-slate-200 px-1 rounded">SKU</code> and <code class="bg-slate-200 px-1 rounded">ASIN</code> to connect product information, fee estimates, and order items.</li>
+                    </ul>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-lg">
+                    <h3 class="font-bold text-lg mb-3">✅ For Robust Applications: Handle API Limits</h3>
+                    <p class="text-slate-600 text-sm">
+                        Production applications must be resilient. Always build with API limits in mind.
+                    </p>
+                    <ul class="list-disc list-inside space-y-2 mt-4 text-sm text-slate-700">
+                        <li><b>Rate Limits:</b> Implement an exponential backoff-with-jitter retry mechanism for <code class="bg-slate-200 px-1 rounded">429 Too Many Requests</code> errors.</li>
+                        <li><b>Pagination:</b> For any operation that can return a large dataset, check for a <code class="bg-slate-200 px-1 rounded">nextToken</code> in the response and loop through all pages to ensure you retrieve all data.</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+    </main>
+    
+    <footer class="text-center py-8 mt-8 border-t border-slate-200">
+        <p class="text-sm text-slate-500">Generated from SP-API documentation analysis.</p>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const navButtons = document.querySelectorAll('.nav-button');
+            const contentSections = document.querySelectorAll('.content-section');
+
+            navButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    const targetId = button.dataset.target;
+
+                    navButtons.forEach(btn => btn.classList.remove('active'));
+                    button.classList.add('active');
+
+                    contentSections.forEach(section => {
+                        if (section.id === targetId) {
+                            section.classList.add('active');
+                        } else {
+                            section.classList.remove('active');
+                        }
+                    });
+                });
+            });
+            
+            const apiTabs = document.querySelectorAll('.api-tab');
+            const apiPanels = document.querySelectorAll('.api-content-panel');
+
+            apiTabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    const targetApi = tab.dataset.api;
+
+                    apiTabs.forEach(t => t.classList.remove('active'));
+                    tab.classList.add('active');
+
+                    apiPanels.forEach(panel => {
+                        if (panel.id === `api-content-${targetApi}`) {
+                            panel.classList.add('active');
+                        } else {
+                            panel.classList.remove('active');
+                        }
+                    });
+                });
+            });
+
+            const reportsData = [
+                {
+                    name: "Flat File Settlement Report v2",
+                    type: "Actual",
+                    useCase: "End-of-period financial reconciliation.",
+                    reportType: "GET_V2_SETTLEMENT_REPORT_DATA_FLAT_FILE_V2",
+                    description: "The authoritative source for all financial transactions in a settlement period. Includes orders, refunds, and all associated fees.",
+                    columns: ["settlement-id", "transaction-type", "order-id", "amount-type", "amount-description", "amount"]
+                },
+                {
+                    name: "FBA Monthly Storage Fee Report",
+                    type: "Actual",
+                    useCase: "Monitoring FBA inventory storage costs.",
+                    reportType: "GET_FBA_STORAGE_FEE_CHARGES_DATA",
+                    description: "Details the monthly fees charged for storing inventory in Amazon's fulfillment centers.",
+                    columns: ["asin", "fnsku", "storage_fee_amount", "currency"]
+                },
+                {
+                    name: "Estimated FBA Fees Report",
+                    type: "Estimated",
+                    useCase: "Forecasting FBA fulfillment costs.",
+                    reportType: "GET_FBA_ESTIMATED_FBA_FEES_TXT_DATA",
+                    description: "Provides estimates for FBA fulfillment fees based on your current inventory's dimensions and weight.",
+                    columns: ["sku", "estimated-fee-total", "estimated-referral-fee-per-unit", "estimated-pick-pack-fee-per-unit"]
+                },
+                 {
+                    name: "Referral Fee Preview Report",
+                    type: "Estimated",
+                    useCase: "Analyzing referral fees for current listings.",
+                    reportType: "GET_REFERRAL_FEE_PREVIEW_REPORT",
+                    description: "Provides estimated referral fees for items currently in your inventory, useful for pricing and profitability analysis.",
+                    columns: ["sku", "your-price", "estimated-referral-fee"]
+                },
+                {
+                    name: "FBA Long-Term Storage Fee Report",
+                    type: "Actual",
+                    useCase: "Identifying aging inventory costs.",
+                    reportType: "GET_FBA_FULFILLMENT_LONGTERM_STORAGE_FEE_CHARGES_DATA",
+                    description: "Details fees for inventory held in FBA centers for extended periods (typically 6-12+ months).",
+                    columns: ["snapshot-date", "sku", "qty-charged-ltsf", "ltsf-amount"]
+                }
+            ];
+
+            const reportsTableBody = document.getElementById('reports-table');
+            reportsData.forEach((report, index) => {
+                const row = document.createElement('tr');
+                row.className = 'report-row border-b border-slate-200 bg-white';
+                row.innerHTML = `
+                    <td class="p-4 font-medium">${report.name}</td>
+                    <td class="p-4 hidden md:table-cell"><span class="px-2 py-1 text-xs rounded-full ${report.type === 'Actual' ? 'bg-teal-100 text-teal-800' : 'bg-amber-100 text-amber-800'}">${report.type}</span></td>
+                    <td class="p-4 hidden lg:table-cell text-slate-600">${report.useCase}</td>
+                `;
+                reportsTableBody.appendChild(row);
+
+                const detailsRow = document.createElement('tr');
+                detailsRow.className = 'report-details bg-slate-50';
+                detailsRow.innerHTML = `
+                    <td colspan="3" class="p-6">
+                        <h4 class="font-semibold text-base mb-2">Report Details</h4>
+                        <p class="text-sm text-slate-600 mb-4">${report.description}</p>
+                        <div class="text-sm">
+                           <span class="font-semibold">Report Type:</span> <code class="text-xs bg-slate-200 text-slate-800 px-2 py-1 rounded-md">${report.reportType}</code>
+                        </div>
+                        <div class="mt-3 text-sm">
+                            <span class="font-semibold">Key Columns:</span>
+                            <div class="flex flex-wrap gap-2 mt-2">
+                                ${report.columns.map(col => `<span class="text-xs bg-white border border-slate-300 text-slate-700 px-2 py-1 rounded-md">${col}</span>`).join('')}
+                            </div>
+                        </div>
+                    </td>
+                `;
+                reportsTableBody.appendChild(detailsRow);
+
+                row.addEventListener('click', () => {
+                    const isVisible = detailsRow.style.display === 'table-row';
+                    document.querySelectorAll('.report-details').forEach(d => d.style.display = 'none');
+                    detailsRow.style.display = isVisible ? 'none' : 'table-row';
+                });
+            });
+
+
+            const ctx = document.getElementById('feeTypesChart').getContext('2d');
+            const feeTypesChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Actual Fees', 'Estimated Fees', 'Contextual Data'],
+                    datasets: [{
+                        label: 'Data Sources by Type',
+                        data: [3, 3, 1],
+                        backgroundColor: [
+                            '#0d9488', // Teal-600
+                            '#d97706', // Amber-600
+                            '#0ea5e9'  // Sky-500
+                        ],
+                        borderColor: '#f5f5f4',
+                        borderWidth: 4,
+                        hoverOffset: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                             labels: {
+                                padding: 20,
+                                font: {
+                                    size: 14
+                                }
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    if (context.parsed !== null) {
+                                        label += context.parsed + ' sources';
+                                    }
+                                    return label;
+                                }
+                            }
+                        }
+                    },
+                    cutout: '60%'
+                }
+            });
+        });
+    </script>
+</body>
+</html>
